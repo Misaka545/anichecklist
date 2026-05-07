@@ -1,0 +1,27 @@
+.elegant-card {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 2.5rem;
+}
+
+.elegant-card-body {
+  padding: 2rem 1.5rem;
+}
+
+.elegant-card-title {
+  font-size: 1.6rem;
+  color: var(--surface-cream);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+@media (max-width: 500px) {
+  .elegant-card {
+    border-radius: var(--radius-md);
+  }
+  .elegant-card-body {
+    padding: 1.5rem 1rem;
+  }
+}

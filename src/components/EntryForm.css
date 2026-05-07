@@ -1,0 +1,297 @@
+.elegant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.elegant-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.elegant-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.elegant-input::placeholder {
+  color: var(--text-muted);
+}
+
+.elegant-input:focus {
+  border-color: var(--surface-cream);
+  background: var(--bg-card-hover);
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Hide native number arrows */
+.elegant-input[type=number]::-webkit-outer-spin-button,
+.elegant-input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.elegant-input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Number Stepper */
+.number-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.step-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.step-btn:hover {
+  background: var(--surface-cream);
+  color: var(--bg-card);
+  border-color: var(--surface-cream);
+}
+
+/* Pill Toggles */
+.pill-group {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 0.25rem;
+}
+
+.pill-btn {
+  flex: 1;
+  padding: 0.6rem 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.pill-btn:hover {
+  color: var(--surface-cream);
+}
+
+.pill-btn.active {
+  background: var(--surface-cream);
+  color: var(--bg-main);
+  font-weight: 600;
+}
+
+/* Status Pills */
+.status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.status-pill-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.status-pill-btn:hover {
+  border-color: var(--surface-cream);
+  color: var(--surface-cream);
+}
+
+.status-pill-btn.active {
+  background: var(--surface-cream);
+  border-color: var(--surface-cream);
+  color: var(--bg-main);
+  font-weight: 600;
+}
+
+/* Actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.elegant-cancel-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.elegant-cancel-btn:hover {
+  color: var(--surface-cream);
+}
+
+.elegant-submit-btn {
+  padding: 0.75rem 2rem;
+  background: var(--surface-cream);
+  color: var(--bg-main);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.elegant-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 239, 234, 0.2);
+}
+
+.elegant-submit-btn:disabled {
+  background: var(--border-focus);
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.open-form-btn {
+  width: 100%;
+  padding: 1.25rem;
+  background: transparent;
+  border: 1.5px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--surface-cream);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-bottom: 2.5rem;
+  transition: var(--transition-smooth);
+}
+
+.open-form-btn:hover {
+  border-color: var(--surface-cream);
+  background: rgba(244, 239, 234, 0.03);
+}
+
+/* ===== RESPONSIVE: MOBILE ===== */
+@media (max-width: 500px) {
+  .form-row-split {
+    grid-template-columns: 1fr;
+  }
+
+  /* Prevent iOS zoom on focus by using 16px minimum */
+  .elegant-input {
+    font-size: 1rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .elegant-label {
+    font-size: 0.75rem;
+  }
+
+  .pill-btn {
+    font-size: 0.8rem;
+    padding: 0.65rem 0;
+  }
+
+  .status-pill-btn {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  .step-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .elegant-submit-btn {
+    width: 100%;
+    padding: 0.85rem;
+    text-align: center;
+  }
+
+  .elegant-cancel-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.6rem;
+  }
+
+  .open-form-btn {
+    padding: 1rem;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .elegant-form {
+    gap: 1.25rem;
+  }
+
+  .number-stepper {
+    gap: 0.35rem;
+  }
+
+  .status-pills {
+    gap: 0.35rem;
+  }
+
+  .status-pill-btn {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.7rem;
+  }
+}
