@@ -4,6 +4,7 @@ A personal anime and manga tracker built with React and Firebase. Track your wat
 
 ## Features
 
+- Google sign-in authentication with email allowlist for private access
 - Add anime and manga entries with cover images, progress, and ratings
 - Real-time sync with Firebase Firestore (with offline persistence)
 - Dashboard with stats and a discovery/recommendation shuffle
@@ -18,6 +19,7 @@ A personal anime and manga tracker built with React and Firebase. Track your wat
 - React 19
 - Vite 8
 - Firebase Firestore (with persistent local cache)
+- Firebase Authentication (Google sign-in)
 - Vanilla CSS
 - Deployed on Vercel
 
@@ -26,7 +28,7 @@ A personal anime and manga tracker built with React and Firebase. Track your wat
 1. Clone the repository:
 
 ```bash
-git clone 
+git clone https://github.com/Misaka545/anitodolist
 cd todolist
 ```
 
@@ -46,6 +48,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+VITE_ALLOWED_EMAIL=your_email@gmail.com
 ```
 
 Or pull env variables directly from Vercel:
@@ -61,6 +64,25 @@ npx vercel env pull .env
 npm run dev
 ```
 
+## Firebase Setup
+
+1. Create a project at https://console.firebase.google.com
+2. Enable Firestore Database
+3. Enable Authentication and add Google as a sign-in provider
+4. Add your deployment domain to Authentication > Settings > Authorized domains
+5. Set Firestore security rules to restrict access to your account:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == 'YOUR_UID';
+    }
+  }
+}
+```
+
 ## Build
 
 ```bash
@@ -72,12 +94,12 @@ npm run preview
 
 ```
 src/
-  App.jsx              Main application component
+  App.jsx              Main app with auth gate and tracker logic
   main.jsx             Entry point with PWA registration
   index.css            Global styles and design tokens
-  App.css              App-specific styles
+  App.css              App-specific styles and auth screen
   lib/
-    firebase.js        Firebase initialization and Firestore config
+    firebase.js        Firebase, Firestore, and Auth initialization
   components/
     EntryForm.jsx      Form for adding new entries
     TrackerItem.jsx     Individual tracker item card
