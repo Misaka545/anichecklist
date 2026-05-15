@@ -4,7 +4,7 @@ A personal anime and manga tracker built with React and Firebase. Track your wat
 
 ## Features
 
-- Google sign-in authentication with email allowlist for private access
+- Google sign-in authentication for multi-user access (each user has their own private database)
 - Add anime and manga entries with cover images, progress, and ratings
 - Real-time sync with Firebase Firestore (with offline persistence)
 - Dashboard with stats and a discovery/recommendation shuffle
@@ -29,7 +29,7 @@ A personal anime and manga tracker built with React and Firebase. Track your wat
 
 ```bash
 git clone https://github.com/Misaka545/anitodolist
-cd todolist
+cd anitodolist
 ```
 
 2. Install dependencies:
@@ -48,7 +48,6 @@ VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-VITE_ALLOWED_EMAIL=your_email@gmail.com
 ```
 
 Or pull env variables directly from Vercel:
@@ -76,8 +75,8 @@ npm run dev
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == 'YOUR_UID';
+    match /users/{userId}/items/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
@@ -114,4 +113,4 @@ public/
 
 ## License
 
-Private project.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

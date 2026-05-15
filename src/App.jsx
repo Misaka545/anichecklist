@@ -8,7 +8,6 @@ import WindowFrame from './components/WindowFrame';
 import './App.css';
 
 const STORAGE_KEY = 'ayame-tracker-data';
-const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
 
 function loadTheme() {
   return localStorage.getItem('theme') || 'dark';
@@ -45,18 +44,25 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Logout failed:', error);
+    if (window.confirm("Are you sure you want to sign out?")) {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
     }
   };
 
 
 
   useEffect(() => {
-    if (!user) return;
-    const unsubscribe = onSnapshot(collection(db, 'items'), (snapshot) => {
+    if (!user) {
+      setItems([]);
+      setRecommendation(null);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = onSnapshot(collection(db, 'users', user.uid, 'items'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.data().id || doc.id
@@ -84,7 +90,8 @@ export default function App() {
 
   const handleAdd = async (newItem) => {
     try {
-      await setDoc(doc(db, 'items', newItem.id.toString()), newItem);
+      if (!user) return;
+      await setDoc(doc(db, 'users', user.uid, 'items', newItem.id.toString()), newItem);
     } catch (e) {
       console.error("Error adding document: ", e);
     }
@@ -96,7 +103,8 @@ export default function App() {
       if (updated.total && updated.current >= updated.total && updated.status === 'watching') {
         finalUpdated.status = 'completed';
       }
-      await setDoc(doc(db, 'items', finalUpdated.id.toString()), finalUpdated);
+      if (!user) return;
+      await setDoc(doc(db, 'users', user.uid, 'items', finalUpdated.id.toString()), finalUpdated);
     } catch (e) {
       console.error("Error updating document: ", e);
     }
@@ -104,7 +112,8 @@ export default function App() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteDoc(doc(db, 'items', id.toString()));
+      if (!user) return;
+      await deleteDoc(doc(db, 'users', user.uid, 'items', id.toString()));
     } catch (e) {
       console.error("Error deleting document: ", e);
     }
@@ -138,7 +147,8 @@ export default function App() {
           if(window.confirm(`Importing ${importedData.length} items to the cloud database. This will merge with existing online data. Proceed?`)) {
             for (const item of importedData) {
               const id = item.id || Date.now() + Math.random();
-              await setDoc(doc(db, 'items', id.toString()), { ...item, id });
+              if (!user) return;
+              await setDoc(doc(db, 'users', user.uid, 'items', id.toString()), { ...item, id });
             }
             alert('Import complete!');
           }
@@ -253,20 +263,7 @@ export default function App() {
     );
   }
 
-  // Access denied for unauthorized users
-  if (ALLOWED_EMAIL && user.email !== ALLOWED_EMAIL) {
-    return (
-      <div className="auth-screen">
-        <div className="auth-card">
-          <h1 className="auth-title heading-serif">Access Denied</h1>
-          <p className="auth-subtitle">This tracker is private.</p>
-          <button className="auth-google-btn" onClick={handleLogout}>
-            Sign out
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <>
