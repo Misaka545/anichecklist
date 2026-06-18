@@ -124,6 +124,19 @@ input:checked + .slider:before {
   letter-spacing: 0.02em;
 }
 
+/* ===== SCROLL ANIMATION ===== */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-animate.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ===== COMPACT STATS ROW ===== */
 .stats-compact-row {
   display: flex;
@@ -185,12 +198,14 @@ input:checked + .slider:before {
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-soft);
   transition: var(--transition-smooth);
-  animation: float 6s ease-in-out infinite;
+  height: 170px;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .discovery-card:hover {
   border-color: var(--border-focus);
-  animation-play-state: paused;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
@@ -198,6 +213,7 @@ input:checked + .slider:before {
   display: flex;
   gap: 1.5rem;
   align-items: center;
+  height: 100%;
 }
 
 .discovery-cover-box {
@@ -230,6 +246,9 @@ input:checked + .slider:before {
 .discovery-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .discovery-tag {
@@ -239,7 +258,7 @@ input:checked + .slider:before {
   letter-spacing: 0.1em;
   color: var(--text-muted);
   font-weight: 600;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
 }
 
 .discovery-title {
@@ -251,7 +270,8 @@ input:checked + .slider:before {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .discovery-actions {
@@ -563,6 +583,52 @@ input:checked + .slider:before {
   background: var(--border-focus);
 }
 
+/* ===== RESPONSIVE CAROUSEL CARDS ===== */
+.carousel-item-wrapper {
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 1.5rem;
+}
+
+.responsive-discovery-card {
+  width: 340px;
+  height: 170px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .carousel-item-wrapper {
+    margin-right: 1rem;
+  }
+  
+  .responsive-discovery-card {
+    width: 280px !important;
+    height: 140px !important;
+    padding: 1rem !important;
+  }
+
+  .responsive-discovery-card .discovery-layout {
+    gap: 0.75rem;
+  }
+
+  .responsive-discovery-card .discovery-cover-box {
+    width: 70px !important;
+    height: 98px !important; /* 140 - 2rem padding approx */
+  }
+
+  .responsive-discovery-card .discovery-title {
+    font-size: 1rem;
+    -webkit-line-clamp: 2;
+    margin-bottom: 0.25rem;
+  }
+
+  .responsive-discovery-card .discovery-start-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* ===== RESPONSIVE: TABLET (768px) ===== */
 @media (max-width: 768px) {
   .app {
@@ -638,15 +704,16 @@ input:checked + .slider:before {
   }
 
   .discovery-layout {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     gap: 1rem;
   }
 
   .discovery-cover-box {
-    width: 100%;
-    height: 160px;
+    width: 90px;
+    height: 130px;
     border-radius: var(--radius-md);
+    flex-shrink: 0;
   }
 
   .discovery-title {

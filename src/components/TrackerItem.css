@@ -84,6 +84,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.item-main:hover .item-title-scroll {
+  display: inline-block;
+  animation: scroll-text 4s linear infinite alternate;
+}
+
+@keyframes scroll-text {
+  0%, 15% { transform: translateX(0); }
+  85%, 100% { transform: translateX(-100px); }
 }
 
 .item-alias {
@@ -335,16 +346,20 @@
 
 .delete-btn {
   background: transparent;
-  border: none;
+  border: 1px solid rgba(201, 107, 107, 0.3);
   color: #c96b6b;
+  font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 500;
-  cursor: pointer;
   padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: var(--transition-smooth);
 }
 
 .delete-btn:hover {
-  text-decoration: underline;
+  border-color: #c96b6b;
+  background: rgba(201, 107, 107, 0.08);
 }
 
 /* Edit Mode Specific Styling */

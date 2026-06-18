@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import WindowFrame from './WindowFrame';
 import { compressAndEncodeImage } from '../utils/imageCompressor';
 import './TrackerItem.css';
 
@@ -19,6 +21,40 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
   const [isPop, setIsPop] = useState(false);
   const [isEditingCurrent, setIsEditingCurrent] = useState(false);
   const [editCurrentValue, setEditCurrentValue] = useState(item.current || 0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const titleRef = useRef(null);
+  const modalTitleRef = useRef(null);
+  const cardRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isModalOverflowing, setIsModalOverflowing] = useState(false);
+
+  useEffect(() => {
+    if (titleRef.current) {
+      setIsOverflowing(titleRef.current.scrollWidth > titleRef.current.clientWidth);
+    }
+  }, [item.title]);
+
+  useEffect(() => {
+    if (isExpanded && modalTitleRef.current) {
+      setIsModalOverflowing(modalTitleRef.current.scrollWidth > modalTitleRef.current.clientWidth);
+    }
+  }, [item.title, isExpanded]);
 
   const handleCurrentSubmit = () => {
     let num = parseInt(editCurrentValue, 10);
@@ -60,9 +96,7 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
   };
 
   const handleDelete = () => {
-    if(window.confirm(`Delete ${item.title} from collection?`)) {
-        onDelete(item.id);
-    }
+    setShowDeleteConfirm(true);
   };
 
   const handleSaveEdit = () => {
@@ -75,6 +109,7 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
       coverUrl: editCoverUrl.trim()
     });
     setIsEditing(false);
+    setIsExpanded(true);
   };
 
   const handleCancelEdit = () => {
@@ -84,6 +119,7 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
     setEditTotal(item.total || '');
     setEditCoverUrl(item.coverUrl || '');
     setIsEditing(false);
+    setIsExpanded(true);
   };
 
   const handleImageUpload = async (e) => {
@@ -108,9 +144,8 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
 
   const currentStatus = statusConfig[item.status] || statusConfig.watching;
   
-  if (isEditing) {
-    return (
-      <div className="elegant-item fade-in edit-mode-card">
+  const renderEditForm = () => (
+      <div className="edit-mode-card fade-in" style={{ padding: '1.5rem' }}>
         <div className="form-group">
           <label className="elegant-label">Title</label>
           <input
@@ -191,23 +226,21 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
           </div>
         </div>
 
-        <div className="edit-actions">
+        <div className="edit-actions" style={{ paddingTop: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
           <button className="btn-primary mini-btn" onClick={handleSaveEdit}>Save Changes</button>
           <button className="btn-secondary mini-btn" onClick={handleCancelEdit}>Cancel</button>
         </div>
       </div>
-    );
-  }
+  );
 
-  const itemGlowStyle = isCompleted ? { animation: 'pulseGlow 3s infinite' } : {};
+  const itemGlowStyle = {};
 
-  return (
-    <div 
-      className={`elegant-item fade-in ${isCompleted ? 'completed' : ''}`}
-      style={itemGlowStyle}
-    >
-      <div className="item-main" onClick={() => setIsExpanded(!isExpanded)}>
-        
+  const renderHeader = (isModal = false) => {
+    const ref = isModal ? modalTitleRef : titleRef;
+    const overflowing = isModal ? isModalOverflowing : isOverflowing;
+
+    return (
+      <div className="item-main" onClick={() => { if(!isModal) setIsExpanded(true); }}>
         <div className="item-cover-wrapper">
           {item.coverUrl ? (
             <img src={item.coverUrl} alt={item.title} className="item-cover-img" />
@@ -223,7 +256,11 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
             <span className="item-status">{currentStatus.label}</span>
           </div>
           
-          <h3 className="item-title heading-serif">{item.title}</h3>
+          <h3 className="item-title heading-serif" title={item.title} ref={ref}>
+            <span className={overflowing ? "item-title-scroll" : ""}>
+              {item.title}
+            </span>
+          </h3>
           {item.alias && <div className="item-alias">{item.alias}</div>}
           
           {item.rating > 0 && (
@@ -278,6 +315,16 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <>
+      <div 
+        ref={cardRef}
+        className={`elegant-item scroll-animate ${isVisible ? 'is-visible' : ''} ${isCompleted ? 'completed' : ''}`}
+      >
+        {renderHeader(false)}
 
       {item.total > 0 && (
         <div className="progress-container">
@@ -286,64 +333,109 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
           </div>
         </div>
       )}
+      </div>
 
-      {/* Expanded State */}
-      {isExpanded && (
-        <div className="item-expanded">
-          <div className="expanded-section">
-            <label className="expanded-label">Update Status</label>
-            <div className="expanded-pills">
-              {Object.entries(statusConfig).map(([key, val]) => (
-                <button
-                  key={key}
-                  className={`sub-pill-btn ${item.status === key ? 'active' : ''}`}
-                  onClick={() => handleStatusChange(key)}
-                >
-                  {val.label}
+      {/* Expanded State Modal */}
+      {(isExpanded || isEditing) && createPortal(
+        <div className="modal-overlay" onClick={() => { if (!isEditing) setIsExpanded(false); }}>
+          <div className={`modal-content fade-in ${isCompleted && !isEditing ? 'completed' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '100%', padding: 0, background: 'var(--bg-main)', boxShadow: '0 10px 40px rgba(0,0,0,0.4)', border: '1px solid var(--border-focus)', cursor: 'default' }}>
+            {isEditing ? renderEditForm() : (
+              <>
+                {renderHeader(true)}
+                {item.total > 0 && (
+                  <div className="progress-container">
+                    <div className="progress-bar-bg">
+                      <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+                    </div>
+                  </div>
+                )}
+                <div className="item-expanded" style={{ borderTop: '1px solid var(--border-light)', marginTop: 0, paddingTop: '1.5rem' }}>
+              <div className="expanded-section" style={{ marginTop: 0 }}>
+                <label className="expanded-label">Update Status</label>
+                <div className="expanded-pills">
+                  {Object.entries(statusConfig).map(([key, val]) => (
+                    <button
+                      key={key}
+                      className={`sub-pill-btn ${item.status === key ? 'active' : ''}`}
+                      onClick={() => handleStatusChange(key)}
+                    >
+                      {val.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="expanded-section">
+                <label className="expanded-label">Rating</label>
+                <div className="rating-dots">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      className={`rating-star-btn ${star <= item.rating ? 'active' : ''}`}
+                      onClick={() => handleRating(star)}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"></polygon>
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="expanded-section">
+                <label className="expanded-label">Notes</label>
+                <textarea
+                  className="elegant-textarea"
+                  placeholder="Add your thoughts here..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  onBlur={handleSaveNotes}
+                  rows={2}
+                />
+              </div>
+
+              <div className="expanded-footer">
+                <button className="edit-btn" onClick={() => { setIsEditing(true); setIsExpanded(false); }}>
+                  Edit Info
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="expanded-section">
-            <label className="expanded-label">Rating</label>
-            <div className="rating-dots">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  className={`rating-star-btn ${star <= item.rating ? 'active' : ''}`}
-                  onClick={() => handleRating(star)}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"></polygon>
-                  </svg>
+                <button className="delete-btn" onClick={handleDelete}>
+                  Remove from List
                 </button>
-              ))}
-            </div>
+              </div>
+              </div>
+             </>
+            )}
           </div>
-
-          <div className="expanded-section">
-            <label className="expanded-label">Notes</label>
-            <textarea
-              className="elegant-textarea"
-              placeholder="Add your thoughts here..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              onBlur={handleSaveNotes}
-              rows={2}
-            />
-          </div>
-
-          <div className="expanded-footer">
-            <button className="edit-btn" onClick={() => setIsEditing(true)}>
-              Edit Info
-            </button>
-            <button className="delete-btn" onClick={handleDelete}>
-              Remove from List
-            </button>
-          </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && createPortal(
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)} style={{ zIndex: 100000 }}>
+          <div className="modal-content fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '360px', width: '90%', background: 'var(--bg-main)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-focus)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+            <p style={{ color: 'var(--surface-cream)', marginBottom: '2rem', fontSize: '1rem', lineHeight: '1.5', textAlign: 'left' }}>
+              Delete <strong>{item.title}</strong> from collection?
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ padding: '0.5rem 1.25rem', background: 'transparent', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-pill)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={() => { setShowDeleteConfirm(false); onDelete(item.id); }}
+                style={{ padding: '0.5rem 1.25rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontWeight: '600', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: 'var(--radius-pill)' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

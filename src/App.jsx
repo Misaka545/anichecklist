@@ -5,6 +5,8 @@ import { db, auth, googleProvider } from './lib/firebase';
 import EntryForm from './components/EntryForm';
 import TrackerItem from './components/TrackerItem';
 import WindowFrame from './components/WindowFrame';
+import { BlossomCarousel } from '@blossom-carousel/react';
+import '@blossom-carousel/react/style.css';
 import './App.css';
 
 const STORAGE_KEY = 'ayame-tracker-data';
@@ -22,9 +24,42 @@ export default function App() {
   const [sortBy, setSortBy] = useState('newest');
   const [theme, setTheme] = useState(loadTheme);
   const [loading, setLoading] = useState(true);
-  const [recommendation, setRecommendation] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+  };
+
+  const onTouchMove = (e) => setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+
+  const onTouchEndHandler = () => {
+    if (!touchStart || !touchEnd) return;
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isLeftSwipe = distanceX > 50;
+    const isRightSwipe = distanceX < -50;
+    
+    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+      if (isRightSwipe && touchStart.x < 50) { 
+        setIsSidebarOpen(true);
+      } else if (isLeftSwipe && isSidebarOpen) { 
+        setIsSidebarOpen(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -58,7 +93,7 @@ export default function App() {
   useEffect(() => {
     if (!user) {
       setItems([]);
-      setRecommendation(null);
+      setRecommendations([]);
       return;
     }
     setLoading(true);
@@ -163,41 +198,27 @@ export default function App() {
     e.target.value = null;
   };
 
-  const stats = useMemo(() => {
-    const anime = items.filter((i) => i.type === 'anime');
-    const manga = items.filter((i) => i.type === 'manga');
-    const completed = items.filter((i) => i.status === 'completed');
-    const totalEps = items.reduce((acc, i) => acc + (i.current || 0), 0);
-    return {
-      anime: anime.length,
-      manga: manga.length,
-      completed: completed.length,
-      totalProgress: totalEps,
-    };
-  }, [items]);
-
   // Handle recommendation shuffle
   const shuffleRecommendation = () => {
     if (items.length > 0) {
-      const randomIndex = Math.floor(Math.random() * items.length);
-      setRecommendation(items[randomIndex]);
+      const shuffled = [...items].sort(() => 0.5 - Math.random());
+      setRecommendations(shuffled.slice(0, 10));
     } else {
-      setRecommendation(null);
+      setRecommendations([]);
     }
   };
 
   // Update recommendation when items change or on first load
   useEffect(() => {
-    if (!recommendation && items.length > 0) {
+    if (recommendations.length === 0 && items.length > 0) {
       shuffleRecommendation();
-    } else if (recommendation && items.length > 0) {
-      // Keep recommendation valid if it still exists
-      const stillExists = items.find(i => i.id === recommendation.id);
-      if (!stillExists) {
+    } else if (recommendations.length > 0 && items.length > 0) {
+      // Keep recommendations valid
+      const valid = recommendations.filter(r => items.some(i => i.id === r.id));
+      if (valid.length !== recommendations.length) {
         shuffleRecommendation();
-      } else if (JSON.stringify(stillExists) !== JSON.stringify(recommendation)) {
-        // Sync edits without completely reshuffling
-        setRecommendation(stillExists);
+      } else {
+        setRecommendations(valid.map(r => items.find(i => i.id === r.id)));
       }
     }
   }, [items]);
@@ -205,10 +226,13 @@ export default function App() {
   const displayItems = useMemo(() => {
     let result = [...items];
 
-    if (filter === 'anime') result = result.filter((i) => i.type === 'anime');
-    else if (filter === 'manga') result = result.filter((i) => i.type === 'manga');
-    else if (filter === 'watching') result = result.filter((i) => i.status === 'watching');
-    else if (filter === 'completed') result = result.filter((i) => i.status === 'completed');
+    if (filter !== 'all' && filter !== 'watching' && filter !== 'completed') {
+      result = result.filter((i) => i.type === filter);
+    } else if (filter === 'watching') {
+      result = result.filter((i) => i.status === 'watching');
+    } else if (filter === 'completed') {
+      result = result.filter((i) => i.status === 'completed');
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -334,7 +358,12 @@ export default function App() {
         </div>
       </aside>
 
-      <div className={`app fade-in`}>
+      <div 
+        className={`app fade-in`}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEndHandler}
+      >
 
       {/* Header */}
       <header className="app-header">
@@ -348,72 +377,97 @@ export default function App() {
       </header>
 
       {activeTab === 'dashboard' ? (
-        <div className="fade-in content-container">
-          {/* Compact Stats Row */}
-          <div className="stats-compact-row">
-            <div className="stat-badge">
-              <span className="badge-count text-serif">{stats.anime}</span>
-              <span className="badge-label">Anime</span>
-            </div>
-            <div className="stat-badge">
-              <span className="badge-count text-serif">{stats.manga}</span>
-              <span className="badge-label">Manga</span>
-            </div>
-            <div className="stat-badge">
-              <span className="badge-count text-serif">{stats.completed}</span>
-              <span className="badge-label">Finished</span>
-            </div>
-            <div className="stat-badge">
-              <span className="badge-count text-serif">{stats.totalProgress}</span>
-              <span className="badge-label">Episodes</span>
-            </div>
-          </div>
-
-          <div className={`dashboard-layout ${!recommendation ? 'single-column' : ''}`}>
+        <div className="fade-in content-container" style={{paddingTop: '1.5rem'}}>
           {/* Discovery Section (Recommendation) */}
-          {recommendation && (
+          {recommendations.length > 0 && (
             <section className="discovery-section">
-              <div className="discovery-card">
-                <div className="discovery-layout">
-                  <div className="discovery-cover-box">
-                    {recommendation.coverUrl ? (
-                      <img src={recommendation.coverUrl} className="discovery-cover-img" alt={recommendation.title} />
-                    ) : (
-                      <div className="discovery-cover-fallback text-serif">
-                        {recommendation.title.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="discovery-info">
-                    <span className="discovery-tag">Next Discovery</span>
-                    <h3 className="discovery-title heading-serif">{recommendation.title}</h3>
-                    <div className="discovery-actions">
-                      <button 
-                        className="discovery-start-btn" 
-                        onClick={() => {
-                          setActiveTab('collection');
-                          setSearch(recommendation.title);
-                          window.scrollTo(0, 0);
-                        }}
-                      >
-                        Go to Collection
-                      </button>
-                      <button className="discovery-shuffle-btn" onClick={shuffleRecommendation} title="Shuffle">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 className="heading-serif" style={{color: 'var(--surface-cream)'}}>Next Discoveries</h2>
+                <button className="discovery-shuffle-btn" onClick={shuffleRecommendation} title="Shuffle" style={{ width: '36px', height: '36px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+                  </svg>
+                </button>
               </div>
+              {isMobile ? (
+                <div className="mobile-single-discovery">
+                  {recommendations.slice(0, 1).map(rec => (
+                    <div key={rec.id} className="discovery-card" style={{ width: '100%', height: 'auto', maxWidth: 'none', margin: '0' }}>
+                      <div className="discovery-layout">
+                        <div className="discovery-cover-box">
+                          {rec.coverUrl ? (
+                            <img src={rec.coverUrl} className="discovery-cover-img" alt={rec.title} />
+                          ) : (
+                            <div className="discovery-cover-fallback text-serif">
+                              {rec.title.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="discovery-info">
+                          <span className="discovery-tag">{rec.type}</span>
+                          <h3 className="discovery-title heading-serif">{rec.title}</h3>
+                          <div className="discovery-actions">
+                            <button 
+                              className="discovery-start-btn" 
+                              onClick={() => {
+                                setActiveTab('collection');
+                                setSearch(rec.title);
+                                window.scrollTo(0, 0);
+                              }}
+                            >
+                              Go to Collection
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <BlossomCarousel repeat>
+                  {recommendations.map(rec => (
+                    <div key={rec.id} className="carousel-item-wrapper">
+                      <div className="discovery-card responsive-discovery-card">
+                        <div className="discovery-layout">
+                          <div className="discovery-cover-box">
+                            {rec.coverUrl ? (
+                              <img src={rec.coverUrl} className="discovery-cover-img" alt={rec.title} />
+                            ) : (
+                              <div className="discovery-cover-fallback text-serif">
+                                {rec.title.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="discovery-info">
+                            <span className="discovery-tag">{rec.type}</span>
+                            <h3 className="discovery-title heading-serif">{rec.title}</h3>
+                            <div className="discovery-actions">
+                              <button 
+                                className="discovery-start-btn" 
+                                onClick={() => {
+                                  setActiveTab('collection');
+                                  setSearch(rec.title);
+                                  window.scrollTo(0, 0);
+                                }}
+                              >
+                                Go to Collection
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </BlossomCarousel>
+              )}
             </section>
           )}
 
-          {/* Entry Form */}
-          <EntryForm onAdd={handleAdd} />
-
+          <div className="dashboard-layout single-column">
+            {/* Entry Form */}
+            <EntryForm onAdd={handleAdd} />
           </div>
 
           {/* Hidden File Input for Import */}
@@ -430,7 +484,7 @@ export default function App() {
           {/* Controls */}
           <div className="controls-area">
             <div className="content-container controls-inner">
-              <div className="search-container">
+              <div className="search-container" style={{ position: 'relative' }}>
                 <input
                   id="search-input"
                   className="search-input"
@@ -438,7 +492,28 @@ export default function App() {
                   placeholder="Search series or aliases..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  style={{ paddingRight: '2.5rem' }}
                 />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: '1rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      padding: '0.2rem'
+                    }}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <div className="filter-tabs">
@@ -448,6 +523,9 @@ export default function App() {
                   { key: 'completed', label: 'Finished' },
                   { key: 'anime', label: 'Anime' },
                   { key: 'manga', label: 'Manga' },
+                  { key: 'movie', label: 'Movie' },
+                  { key: 'magazine', label: 'Magazine' },
+                  { key: 'book', label: 'Book' },
                 ].map((f) => (
                   <button
                     key={f.key}
