@@ -5,8 +5,8 @@ import { db, auth, googleProvider } from './lib/firebase';
 import EntryForm from './components/EntryForm';
 import TrackerItem from './components/TrackerItem';
 import WindowFrame from './components/WindowFrame';
-import { BlossomCarousel } from '@blossom-carousel/react';
-import '@blossom-carousel/react/style.css';
+import { FocusRail } from './components/FocusRail';
+import { motion } from 'framer-motion';
 import './App.css';
 
 const STORAGE_KEY = 'ayame-tracker-data';
@@ -28,6 +28,39 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [prefillData, setPrefillData] = useState(null);
+
+  const focusRailItems = useMemo(() => recommendations.map(rec => ({
+    id: rec.id,
+    title: rec.title,
+    imageSrc: rec.coverUrl || '',
+    meta: rec.type,
+  })), [recommendations]);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleFocusRailAdd = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const handleFocusRailItemClick = (item) => {
+    // Switch to collection tab, reset filters, and set search to the item's title
+    setActiveTab('collection');
+    setFilter('all');
+    setSearch(item.title);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeTab]);
 
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -371,104 +404,33 @@ export default function App() {
           <button className="hamburger-btn" onClick={() => setIsSidebarOpen(true)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
-          <h1 className="app-title heading-serif">Ayame</h1>
-          <div className="app-subtitle-box">Personal Collection</div>
+          <h1 className="app-title app-title-bounce" style={{ fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}>
+            {'Ayame'.split('').map((char, i) => (
+              <span key={i} className="bounce-char" style={{ animationDelay: `${i * 0.12}s` }}>{char}</span>
+            ))}
+          </h1>
         </div>
       </header>
 
       {activeTab === 'dashboard' ? (
-        <div className="fade-in content-container" style={{paddingTop: '1.5rem'}}>
+        <div className="fade-in" style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', margin: '0 -0.75rem', paddingBottom: 0 }}>
           {/* Discovery Section (Recommendation) */}
-          {recommendations.length > 0 && (
-            <section className="discovery-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 className="heading-serif" style={{color: 'var(--surface-cream)'}}>Next Discoveries</h2>
-                <button className="discovery-shuffle-btn" onClick={shuffleRecommendation} title="Shuffle" style={{ width: '36px', height: '36px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
-                  </svg>
-                </button>
-              </div>
-              {isMobile ? (
-                <div className="mobile-single-discovery">
-                  {recommendations.slice(0, 1).map(rec => (
-                    <div key={rec.id} className="discovery-card" style={{ width: '100%', height: 'auto', maxWidth: 'none', margin: '0' }}>
-                      <div className="discovery-layout">
-                        <div className="discovery-cover-box">
-                          {rec.coverUrl ? (
-                            <img src={rec.coverUrl} className="discovery-cover-img" alt={rec.title} />
-                          ) : (
-                            <div className="discovery-cover-fallback text-serif">
-                              {rec.title.charAt(0)}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="discovery-info">
-                          <span className="discovery-tag">{rec.type}</span>
-                          <h3 className="discovery-title heading-serif">{rec.title}</h3>
-                          <div className="discovery-actions">
-                            <button 
-                              className="discovery-start-btn" 
-                              onClick={() => {
-                                setActiveTab('collection');
-                                setSearch(rec.title);
-                                window.scrollTo(0, 0);
-                              }}
-                            >
-                              Go to Collection
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <BlossomCarousel repeat>
-                  {recommendations.map(rec => (
-                    <div key={rec.id} className="carousel-item-wrapper">
-                      <div className="discovery-card responsive-discovery-card">
-                        <div className="discovery-layout">
-                          <div className="discovery-cover-box">
-                            {rec.coverUrl ? (
-                              <img src={rec.coverUrl} className="discovery-cover-img" alt={rec.title} />
-                            ) : (
-                              <div className="discovery-cover-fallback text-serif">
-                                {rec.title.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="discovery-info">
-                            <span className="discovery-tag">{rec.type}</span>
-                            <h3 className="discovery-title heading-serif">{rec.title}</h3>
-                            <div className="discovery-actions">
-                              <button 
-                                className="discovery-start-btn" 
-                                onClick={() => {
-                                  setActiveTab('collection');
-                                  setSearch(rec.title);
-                                  window.scrollTo(0, 0);
-                                }}
-                              >
-                                Go to Collection
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </BlossomCarousel>
-              )}
+          {recommendations.length > 0 ? (
+            <section className="discovery-section" style={{ flex: 1, margin: 0, overflow: 'hidden' }}>
+              <FocusRail 
+                items={focusRailItems} 
+                onAddClick={handleFocusRailAdd}
+                onItemClick={handleFocusRailItemClick}
+                onShuffle={shuffleRecommendation}
+                className="!h-full"
+              />
             </section>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+              No recommendations available.
+            </div>
           )}
 
-          <div className="dashboard-layout single-column">
-            {/* Entry Form */}
-            <EntryForm onAdd={handleAdd} />
-          </div>
 
           {/* Hidden File Input for Import */}
           <input 
@@ -565,17 +527,19 @@ export default function App() {
                 </div>
               ) : displayItems.length > 0 ? (
                 displayItems.map((item, index) => (
-                  <div 
+                  <motion.div 
                     key={item.id} 
-                    className="stagger-in" 
-                    style={{ animationDelay: `${index * 0.05}s` }}
+                    initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: false, amount: 0.1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
                   >
                     <TrackerItem
                       item={item}
                       onUpdate={handleUpdate}
                       onDelete={handleDelete}
                     />
-                  </div>
+                  </motion.div>
                 ))
               ) : (
                 <div className="empty-state">
@@ -595,6 +559,14 @@ export default function App() {
       )}
 
     </div>
+
+      <EntryForm 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onAdd={handleAdd} 
+        prefillData={null} 
+      />
+
     </>
   );
 }

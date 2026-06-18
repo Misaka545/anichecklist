@@ -1,16 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import WindowFrame from './WindowFrame';
 import { compressAndEncodeImage } from '../utils/imageCompressor';
 import './EntryForm.css';
-export default function EntryForm({ onAdd }) {
+export default function EntryForm({ onAdd, prefillData, isOpen, onClose }) {
   const [title, setTitle] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [type, setType] = useState('anime');
   const [total, setTotal] = useState('');
   const [status, setStatus] = useState('watching');
   const [alias, setAlias] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (prefillData) {
+      setTitle(prefillData.title || '');
+      setCoverUrl(prefillData.imageSrc || '');
+      setType(prefillData.meta || 'anime');
+    }
+  }, [prefillData]);
+
+  const hasPushedState = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (!hasPushedState.current) {
+        window.history.pushState({ modalOpen: 'entryForm' }, '');
+        hasPushedState.current = true;
+      }
+      const handlePopState = () => {
+        if (onClose) onClose();
+        hasPushedState.current = false;
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    } else {
+      hasPushedState.current = false;
+    }
+  }, [isOpen, onClose]);
+
+  const closeModal = () => {
+    if (onClose) onClose();
+    if (hasPushedState.current && window.history.state?.modalOpen === 'entryForm') {
+      window.history.back();
+    }
+    hasPushedState.current = false;
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -42,21 +76,14 @@ export default function EntryForm({ onAdd }) {
       createdAt: new Date().toISOString(),
     });
 
-    setTitle('');
-    setCoverUrl('');
-    setTotal('');
     setAlias('');
-    setIsOpen(false);
+    closeModal();
   };
 
   return (
     <>
-      <button className="open-form-btn fade-in" onClick={() => setIsOpen(true)}>
-        + Add to Collection
-      </button>
-
       {isOpen && createPortal(
-        <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content fade-in" onClick={(e) => e.stopPropagation()}>
             <WindowFrame title="New Entry">
               <form className="elegant-form" onSubmit={handleSubmit}>
@@ -70,6 +97,7 @@ export default function EntryForm({ onAdd }) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     autoComplete="off"
+                    enterKeyHint="done"
                     autoFocus
                   />
                 </div>
@@ -83,6 +111,7 @@ export default function EntryForm({ onAdd }) {
                     value={alias}
                     onChange={(e) => setAlias(e.target.value)}
                     autoComplete="off"
+                    enterKeyHint="done"
                   />
                 </div>
 
@@ -142,10 +171,13 @@ export default function EntryForm({ onAdd }) {
                       <input
                         id="entry-total"
                         className="elegant-input text-center"
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         min="0"
                         placeholder="-"
                         value={total}
+                        enterKeyHint="done"
                         onChange={(e) => setTotal(e.target.value)}
                       />
                       <button 
@@ -179,7 +211,7 @@ export default function EntryForm({ onAdd }) {
                 </div>
 
                 <div className="form-actions">
-                  <button type="button" className="elegant-cancel-btn" onClick={() => setIsOpen(false)}>
+                  <button type="button" className="elegant-cancel-btn" onClick={closeModal}>
                     Cancel
                   </button>
                   <button type="submit" className="elegant-submit-btn" disabled={!title.trim()}>

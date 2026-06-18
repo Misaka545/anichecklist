@@ -17,6 +17,36 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
   const progress = item.total ? Math.min((item.current / item.total) * 100, 100) : 0;
   const isCompleted = item.total && item.current >= item.total;
   const typeLabel = item.type === 'anime' ? 'Anime' : 'Manga';
+  const hasPushedState = useRef(false);
+
+  useEffect(() => {
+    if (isExpanded || isEditing) {
+      if (!hasPushedState.current) {
+        window.history.pushState({ modalOpen: item.id }, '');
+        hasPushedState.current = true;
+      }
+      const handlePopState = () => {
+        setIsExpanded(false);
+        setIsEditing(false);
+        hasPushedState.current = false;
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    } else {
+      hasPushedState.current = false;
+    }
+  }, [isExpanded, isEditing, item.id]);
+
+  const closeModal = () => {
+    setIsExpanded(false);
+    setIsEditing(false);
+    if (hasPushedState.current && window.history.state?.modalOpen === item.id) {
+      window.history.back();
+    }
+    hasPushedState.current = false;
+  };
 
   const [isPop, setIsPop] = useState(false);
   const [isEditingCurrent, setIsEditingCurrent] = useState(false);
@@ -216,7 +246,9 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
             <div className="custom-number-wrapper">
               <input
                 className="elegant-input number-input"
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="1"
                 placeholder="?"
                 value={editTotal}
@@ -240,7 +272,7 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
     const overflowing = isModal ? isModalOverflowing : isOverflowing;
 
     return (
-      <div className="item-main" onClick={() => { if(!isModal) setIsExpanded(true); }}>
+      <div className={`item-main ${isModal ? 'is-modal' : ''}`} onClick={() => { if(!isModal) setIsExpanded(true); }}>
         <div className="item-cover-wrapper">
           {item.coverUrl ? (
             <img src={item.coverUrl} alt={item.title} className="item-cover-img" />
@@ -278,7 +310,9 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
           <div className="counter-display">
             {isEditingCurrent ? (
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="counter-input"
                 autoFocus
                 value={editCurrentValue}
@@ -326,32 +360,28 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
       >
         {renderHeader(false)}
 
-      {item.total > 0 && (
         <div className="progress-container">
           <div className="progress-bar-bg">
             <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
           </div>
         </div>
-      )}
       </div>
 
       {/* Expanded State Modal */}
       {(isExpanded || isEditing) && createPortal(
-        <div className="modal-overlay" onClick={() => { if (!isEditing) setIsExpanded(false); }}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className={`modal-content fade-in ${isCompleted && !isEditing ? 'completed' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '100%', padding: 0, background: 'var(--bg-main)', boxShadow: '0 10px 40px rgba(0,0,0,0.4)', border: '1px solid var(--border-focus)', cursor: 'default' }}>
             {isEditing ? renderEditForm() : (
               <>
                 {renderHeader(true)}
-                {item.total > 0 && (
                   <div className="progress-container">
                     <div className="progress-bar-bg">
                       <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
                     </div>
                   </div>
-                )}
                 <div className="item-expanded" style={{ borderTop: '1px solid var(--border-light)', marginTop: 0, paddingTop: '1.5rem' }}>
               <div className="expanded-section" style={{ marginTop: 0 }}>
-                <label className="expanded-label">Update Status</label>
+                <label className="expanded-label">Status</label>
                 <div className="expanded-pills">
                   {Object.entries(statusConfig).map(([key, val]) => (
                     <button
@@ -394,14 +424,10 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
                 />
               </div>
 
-              <div className="expanded-footer">
-                <button className="edit-btn" onClick={() => { setIsEditing(true); setIsExpanded(false); }}>
-                  Edit Info
-                </button>
-                <button className="delete-btn" onClick={handleDelete}>
-                  Remove from List
-                </button>
-              </div>
+                <div className="expanded-footer">
+                  <button className="edit-btn" onClick={() => { setIsExpanded(false); setIsEditing(true); }}>Edit Info</button>
+                  <button className="delete-btn" onClick={() => setShowDeleteConfirm(true)}>Remove from List</button>
+                </div>
               </div>
              </>
             )}
@@ -426,7 +452,7 @@ export default function TrackerItem({ item, onUpdate, onDelete }) {
               </button>
               <button 
                 className="btn-primary" 
-                onClick={() => { setShowDeleteConfirm(false); onDelete(item.id); }}
+                onClick={() => { setShowDeleteConfirm(false); closeModal(); onDelete(item.id); }}
                 style={{ padding: '0.5rem 1.25rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontWeight: '600', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: 'var(--radius-pill)' }}
               >
                 Delete

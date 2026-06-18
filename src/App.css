@@ -23,7 +23,7 @@
   z-index: 100;
   background: var(--bg-main);
   border-bottom: 1px solid var(--border-light);
-  height: 85px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,14 +114,27 @@ input:checked + .slider:before {
 .app-title {
   font-size: clamp(1.4rem, 5vw, 2rem);
   color: var(--surface-cream);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0;
 }
 
-.app-subtitle-box {
-  font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-  color: var(--text-secondary);
-  font-weight: 300;
-  letter-spacing: 0.02em;
+/* Bounce effect for Japanese title */
+@keyframes charBounce {
+  0%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-6px); }
+  40% { transform: translateY(0); }
+}
+
+.app-title-bounce {
+  display: flex;
+  gap: 0.05em;
+  justify-content: center;
+  letter-spacing: 0.15em;
+}
+
+.bounce-char {
+  display: inline-block;
+  color: var(--surface-cream);
+  animation: charBounce 2s ease-in-out infinite;
 }
 
 /* ===== SCROLL ANIMATION ===== */
@@ -386,7 +399,7 @@ input:checked + .slider:before {
 /* ===== FILTERS & SEARCH ===== */
 .controls-area {
   position: sticky;
-  top: 85px; /* Matches header exactly */
+  top: 60px; /* Matches header exactly */
   z-index: 90;
   background: var(--bg-main);
   padding: 0.75rem 0 1rem;
@@ -667,8 +680,8 @@ input:checked + .slider:before {
   }
 
   .app-header {
-    margin: 0 -0.75rem 1rem -0.75rem;
-    padding: 1rem 0.75rem;
+    margin: 0 -0.75rem 0 -0.75rem;
+    padding: 0.75rem 0.75rem;
   }
 
   /* Stats: 2x2 grid on small screens */
@@ -691,7 +704,7 @@ input:checked + .slider:before {
   .controls-area {
     margin: 0 -0.75rem 1rem -0.75rem;
     padding: 0.75rem 0.75rem 1rem;
-    top: 85px; /* Fits perfectly below 85px tall header */
+    top: 60px; /* Fits perfectly below 60px tall header */
   }
 
   /* Discovery card: vertical stack */

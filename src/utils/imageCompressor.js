@@ -1,4 +1,4 @@
-export const compressAndEncodeImage = (file, maxWidth = 300, maxHeight = 400) => {
+export const compressAndEncodeImage = (file, maxWidth = 900, maxHeight = 1200) => {
   return new Promise((resolve, reject) => {
     if (!file) {
       reject(new Error("No file provided"));
@@ -34,8 +34,8 @@ export const compressAndEncodeImage = (file, maxWidth = 300, maxHeight = 400) =>
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress as WebP at 0.7 quality
-        const dataUrl = canvas.toDataURL("image/webp", 0.7);
+        // Compress as WebP at high quality (0.92) to retain detail
+        const dataUrl = canvas.toDataURL("image/webp", 0.92);
         resolve(dataUrl);
       };
       img.onerror = (error) => reject(error);
